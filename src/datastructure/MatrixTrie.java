@@ -1,8 +1,21 @@
 package datastructure;
 
+import java.io.IOException;
+import java.nio.file.FileSystems;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.TreeMap;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.Field.Store;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
 
 public class MatrixTrie {
 	private int count;
@@ -10,7 +23,7 @@ public class MatrixTrie {
 	
 	protected class trieNode {
 		private TreeMap<Character, trieNode> children;
-		private LinkedList<Group> docs;
+		private LinkedList<Tuple> docs;
 		
 		public trieNode() {
 			this.children = null;
@@ -44,16 +57,20 @@ public class MatrixTrie {
 			}
 		}
 		
-		public void appendGroup(Group group) {
+		public LinkedList<Tuple> getDocs() {
+			return this.docs;
+		}
+		
+		public void appendTuple(Tuple tuple) {
 			if(this.docs == null)
 				this.docs = new LinkedList<>();
 			
-			this.docs.add(group);
+			this.docs.add(tuple);
 		}
 		
 		@Override
 		public String toString() {
-			ListIterator<Group> it = this.docs.listIterator();
+			ListIterator<Tuple> it = this.docs.listIterator();
 			StringBuilder sb = new StringBuilder();
 			while(it.hasNext()) {
 				sb.append(it.next());
@@ -69,16 +86,66 @@ public class MatrixTrie {
 		this.root = new trieNode();
 	}
 	
-	public trieNode insert(String term, Group group) {
+	public trieNode insert(String term, Tuple group) {
 		trieNode curr = this.root;
 		for(int i = 0; i < term.length(); i++) {
 			curr = curr.insert(new Character(term.charAt(i)));
 		}
-		curr.appendGroup(group);
+		curr.appendTuple(group);
 		return curr;
 	}
 	
 	public int getCount() {
 		return this.count;
 	}
+	
+	public void clear() {
+		this.save();
+		this.root = new trieNode();
+		this.count = 0;
+	}
+	
+	public void save() {
+		try {
+			Directory directory = FSDirectory.open(FileSystems.getDefault().getPath("indexDir"));
+	        IndexWriterConfig indexWriterConfig = new IndexWriterConfig();
+			IndexWriter writer = new IndexWriter(directory, indexWriterConfig);
+			this.saveHelper(this.root, "", writer);
+			writer.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private void saveHelper(trieNode node, String str, IndexWriter writer) {
+		if(node.numOfChidren() == 0) { //Leaf node
+			Document vocab = new Document();
+			vocab.add(new StringField("vocab", str, Store.NO));
+			try {
+				writer.updateDocument(new Term("vocab", str), vocab);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			return;
+		}
+		Iterator<Map.Entry<Character, trieNode>> it =
+				node.getChildren().entrySet().iterator();
+		while(it.hasNext()) {
+			Map.Entry<Character, trieNode> entry = it.next();
+			this.saveHelper(entry.getValue(), str +
+					String.valueOf(entry.getKey().charValue()), writer);
+		}
+		
+		if(node.getDocs() != null) {
+			Document vocab = new Document();
+			vocab.add(new StringField("vocab", str, Store.NO));
+			try {
+				writer.updateDocument(new Term("vocab", str), vocab);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			node.getDocs().clear();
+		}
+	}
+	
 }

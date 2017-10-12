@@ -1,10 +1,10 @@
 package datastructure;
 
-public class Group {
+public class Tuple {
 		private String str;
 		private int freq;
 		
-		public Group(String str, int freq) {
+		public Tuple(String str, int freq) {
 			this.str = str;
 			this.freq = freq;
 		}

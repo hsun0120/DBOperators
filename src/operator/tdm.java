@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.ListIterator;
 
-import datastructure.Group;
+import datastructure.Tuple;
 import datastructure.Histogram;
 import datastructure.MatrixTrie;
 
@@ -20,11 +20,14 @@ public class tdm {
 	}
 	
 	public void add(Histogram hist) {
-		LinkedList<Group> terms = hist.getTerms();
-		ListIterator<Group> it = terms.listIterator();
+		LinkedList<Tuple> terms = hist.getTerms();
+		ListIterator<Tuple> it = terms.listIterator();
 		while(it.hasNext()) {
-			Group group = it.next();
-			this.matrix.insert(group.getString(), new Group(hist.getId(),
+			Tuple group = it.next();
+			if((double)Runtime.getRuntime().freeMemory()/
+					Runtime.getRuntime().totalMemory() < 0.1)
+				this.matrix.clear();
+			this.matrix.insert(group.getString(), new Tuple(hist.getId(),
 					group.getFreq()));
 		}
 		this.numOfDoc++;
@@ -54,6 +57,6 @@ public class tdm {
 	    	tdm.add(hist);
 	    }
 	    
-	    System.out.println("Matrix construction complete!");
+	    System.out.println("Test complete.");
 	}
 }

@@ -27,6 +27,7 @@ public class Histogram {
 	public void construct(String filename) {
 		try(Scanner sc = new Scanner(new FileInputStream(filename),
 				StandardCharsets.UTF_8.toString())) {
+			this.docId = sc.next(); //TODO: change this if input format changes
 			while(sc.hasNext()) {
 				String term = sc.next();
 				trieNode node = this.trie.insert(term);
@@ -48,12 +49,12 @@ public class Histogram {
 		return this.docId;
 	}
 	
-	public LinkedList<Group> getTerms() {
-		LinkedList<Group> list = new LinkedList<>();
+	public LinkedList<Tuple> getTerms() {
+		LinkedList<Tuple> list = new LinkedList<>();
 		Iterator<Entry<String, trieNode>> it = this.map.entrySet().iterator();
 		while(it.hasNext()) {
 			Entry<String, trieNode> entry = it.next();
-			Group group = new Group(entry.getKey(),
+			Tuple group = new Tuple(entry.getKey(),
 					entry.getValue().getFreq());
 			list.add(group);
 		}
