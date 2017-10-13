@@ -11,10 +11,24 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class Merger {
-	public static void merge(String dir, final String target) {
+	static final String END = "END";
+	
+	private IODeleteService iosrv;
+	final ExecutorService es;
+	
+	public Merger(int nThreads) {
+		this.iosrv = new IODeleteService(nThreads, 1000);
+		this.es = Executors.newFixedThreadPool(nThreads);
+	}
+	
+	public void merge(String dir, final String target) {
 		Path root = Paths.get(dir);
+		this.iosrv.exec(this.es);
 		try {
 			Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
 				@Override
@@ -34,27 +48,20 @@ public class Merger {
 						in.transferTo(0, in.size(), out);
 						in.close();
 						input.close();
+						iosrv.enque(file);
 						raf.writeBytes("\n");
 						out.close();
 						raf.close();
-						Files.delete(file);
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-					return FileVisitResult.CONTINUE;
-				}
-				
-				@Override
-				public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
-					try {
-						Files.delete(dir);
-					} catch (IOException e) {
+					} catch (IOException | InterruptedException e) {
 						e.printStackTrace();
 					}
 					return FileVisitResult.CONTINUE;
 				}
 			});
-		} catch (IOException e) {
+			this.iosrv.enque(Paths.get(END));
+			es.awaitTermination(1, TimeUnit.DAYS);
+			Files.delete(root);
+		} catch (IOException | InterruptedException e) {
 			e.printStackTrace();
 		}
 	}

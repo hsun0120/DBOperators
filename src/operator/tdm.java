@@ -20,8 +20,8 @@ public class tdm {
 	private MatrixTrie matrix;
 	private int numOfDoc;
 	
-	public tdm() {
-		this.matrix = new MatrixTrie(4);
+	public tdm(int numThreads, String tempDir) {
+		this.matrix = new MatrixTrie(numThreads, tempDir);
 		this.numOfDoc = 0;
 	}
 	
@@ -61,7 +61,7 @@ public class tdm {
 	    String[] fileList = new String[list.size()];
 	    fileList = list.toArray(fileList);
 	    long st = System.nanoTime();
-	    tdm tdm = new tdm();
+	    tdm tdm = new tdm(4, args[1]);
 	    for(String doc: fileList) {
 	    	try(Scanner sc = new Scanner(new InputStreamReader(new
 	    			FileInputStream(doc), StandardCharsets.UTF_8))) {
@@ -75,7 +75,8 @@ public class tdm {
 			}
 	    }
 	    tdm.end();
-	    Merger.merge("temp", "matrix");
+	    Merger merger = new Merger(4);
+	    merger.merge("temp", args[2]);
 	    long ed = System.nanoTime();
 	    System.out.println("Matrix generation completed in " + (ed - st) + " ns.");
 	}

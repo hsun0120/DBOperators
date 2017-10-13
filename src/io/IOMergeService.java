@@ -7,11 +7,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import datastructure.Tuple;
 
-public class IOService {
+public class IOMergeService {
 	private int numThreads;
 	LinkedBlockingQueue<Tuple<String, LinkedList<Tuple<String, Integer>>>> lbq;
 	
-	public IOService(int numThreads, int length) {
+	public IOMergeService(int numThreads, int length) {
 		this.numThreads = numThreads;
 		this.lbq  = new LinkedBlockingQueue<>(length);
 	}

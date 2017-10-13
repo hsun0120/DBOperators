@@ -9,12 +9,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import io.IOService;
+import io.IOMergeService;
 
 public class MatrixTrie {
 	private int count;
 	private trieNode root;
 	private int numThreads;
+	private String temp;
 	
 	protected class trieNode {
 		private TreeMap<Character, trieNode> children;
@@ -76,10 +77,11 @@ public class MatrixTrie {
 		}
 	}
 	
-	public MatrixTrie(int numThreads) {
+	public MatrixTrie(int numThreads, String temp) {
 		this.count = 0;
 		this.root = new trieNode();
 		this.numThreads = numThreads;
+		this.temp = temp;
 	}
 	
 	public trieNode insert(String term, Tuple<String, Integer> tuple) {
@@ -104,8 +106,8 @@ public class MatrixTrie {
 	public void save() {
 		final ExecutorService es =
 				Executors.newFixedThreadPool(this.numThreads);
-		IOService iosrv = new IOService(this.numThreads, 1000);
-		iosrv.exec("temp", es);
+		IOMergeService iosrv = new IOMergeService(this.numThreads, 1000);
+		iosrv.exec(temp, es);
 		this.saveHelper(this.root, "", iosrv);
 		
 		try { /* Indicate end of task */
@@ -122,7 +124,7 @@ public class MatrixTrie {
 		}
 	}
 	
-	private void saveHelper(trieNode node, String str, IOService iosrv) {
+	private void saveHelper(trieNode node, String str, IOMergeService iosrv) {
 		if(node.numOfChidren() == 0) { //Leaf node
 			try {
 				iosrv.enque(new Tuple<String, LinkedList<Tuple<String,
