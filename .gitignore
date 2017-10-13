@@ -52,7 +52,7 @@ Temporary Items
 /bin
 /.settings
 /target
-/indexDir
+/temp
 
 # Git settings
 .gitignore

@@ -5,12 +5,16 @@ import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import io.IOService;
 
 public class MatrixTrie {
 	private int count;
 	private trieNode root;
+	private int numThreads;
 	
 	protected class trieNode {
 		private TreeMap<Character, trieNode> children;
@@ -72,9 +76,10 @@ public class MatrixTrie {
 		}
 	}
 	
-	public MatrixTrie() {
+	public MatrixTrie(int numThreads) {
 		this.count = 0;
 		this.root = new trieNode();
+		this.numThreads = numThreads;
 	}
 	
 	public trieNode insert(String term, Tuple<String, Integer> tuple) {
@@ -97,12 +102,21 @@ public class MatrixTrie {
 	}
 	
 	public void save() {
-		IOService iosrv = new IOService(4, 1000);
-		iosrv.exec("temp");
+		final ExecutorService es =
+				Executors.newFixedThreadPool(this.numThreads);
+		IOService iosrv = new IOService(this.numThreads, 1000);
+		iosrv.exec("temp", es);
 		this.saveHelper(this.root, "", iosrv);
-		try {
+		
+		try { /* Indicate end of task */
 			iosrv.enque(new Tuple<String,
 					LinkedList<Tuple<String, Integer>>>("END", null));
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+		try { /* Wait for all threads to finish */
+			es.awaitTermination(1, TimeUnit.HOURS);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -133,7 +147,6 @@ public class MatrixTrie {
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			node.getDocs().clear();
 		}
 	}
 	

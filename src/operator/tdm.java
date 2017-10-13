@@ -12,6 +12,7 @@ import java.util.ListIterator;
 import java.util.Scanner;
 
 import datastructure.Tuple;
+import io.Merger;
 import datastructure.Histogram;
 import datastructure.MatrixTrie;
 
@@ -20,7 +21,7 @@ public class tdm {
 	private int numOfDoc;
 	
 	public tdm() {
-		this.matrix = new MatrixTrie();
+		this.matrix = new MatrixTrie(4);
 		this.numOfDoc = 0;
 	}
 	
@@ -47,8 +48,8 @@ public class tdm {
 	}
 	
 	public static void main(String[] args) {
-		LocalDate start = LocalDate.parse("2017-04-10"),
-		          end   = LocalDate.parse("2017-04-12");
+		LocalDate start = LocalDate.parse("2017-03-13"),
+		          end   = LocalDate.parse("2017-03-14");
 		ArrayList<String> list = new ArrayList<>();
 		for(LocalDate date = start; date.isBefore(end); date = date.plusDays(1)) {
 			File folder = new File(args[0] + "/" + date.toString().replace("-", ""));
@@ -59,13 +60,14 @@ public class tdm {
 		}
 	    String[] fileList = new String[list.size()];
 	    fileList = list.toArray(fileList);
+	    long st = System.nanoTime();
 	    tdm tdm = new tdm();
 	    for(String doc: fileList) {
 	    	try(Scanner sc = new Scanner(new InputStreamReader(new
 	    			FileInputStream(doc), StandardCharsets.UTF_8))) {
 	    		while(sc.hasNextLine()) {
 	    			Histogram hist = new Histogram(null);
-	    	    	hist.construct(doc);
+	    	    	hist.construct(sc.nextLine());
 	    	    	tdm.add(hist);
 	    		}
 	    	} catch (FileNotFoundException e) {
@@ -73,7 +75,8 @@ public class tdm {
 			}
 	    }
 	    tdm.end();
-	    
-	    System.out.println("Test complete.");
+	    Merger.merge("temp", "matrix");
+	    long ed = System.nanoTime();
+	    System.out.println("Matrix generation completed in " + (ed - st) + " ns.");
 	}
 }

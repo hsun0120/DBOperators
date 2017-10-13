@@ -19,6 +19,6 @@ public class Tuple<T, E> {
 		
 		@Override
 		public String toString() {
-			return "[" + this.e1 + " : " + this.e2 + "]";
+			return "[" + this.e1 + ":" + this.e2 + "]";
 		}
 	}
