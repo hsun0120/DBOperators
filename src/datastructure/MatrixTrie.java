@@ -1,21 +1,12 @@
 package datastructure;
 
-import java.io.IOException;
-import java.nio.file.FileSystems;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.document.Field.Store;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FSDirectory;
+import io.IOService;
 
 public class MatrixTrie {
 	private int count;
@@ -23,7 +14,7 @@ public class MatrixTrie {
 	
 	protected class trieNode {
 		private TreeMap<Character, trieNode> children;
-		private LinkedList<Tuple> docs;
+		private LinkedList<Tuple<String, Integer>> docs;
 		
 		public trieNode() {
 			this.children = null;
@@ -57,11 +48,11 @@ public class MatrixTrie {
 			}
 		}
 		
-		public LinkedList<Tuple> getDocs() {
+		public LinkedList<Tuple<String, Integer>> getDocs() {
 			return this.docs;
 		}
 		
-		public void appendTuple(Tuple tuple) {
+		public void appendTuple(Tuple<String, Integer> tuple) {
 			if(this.docs == null)
 				this.docs = new LinkedList<>();
 			
@@ -70,7 +61,7 @@ public class MatrixTrie {
 		
 		@Override
 		public String toString() {
-			ListIterator<Tuple> it = this.docs.listIterator();
+			ListIterator<Tuple<String, Integer>> it = this.docs.listIterator();
 			StringBuilder sb = new StringBuilder();
 			while(it.hasNext()) {
 				sb.append(it.next());
@@ -86,12 +77,12 @@ public class MatrixTrie {
 		this.root = new trieNode();
 	}
 	
-	public trieNode insert(String term, Tuple group) {
+	public trieNode insert(String term, Tuple<String, Integer> tuple) {
 		trieNode curr = this.root;
 		for(int i = 0; i < term.length(); i++) {
 			curr = curr.insert(new Character(term.charAt(i)));
 		}
-		curr.appendTuple(group);
+		curr.appendTuple(tuple);
 		return curr;
 	}
 	
@@ -106,24 +97,23 @@ public class MatrixTrie {
 	}
 	
 	public void save() {
+		IOService iosrv = new IOService(4, 1000);
+		iosrv.exec("temp");
+		this.saveHelper(this.root, "", iosrv);
 		try {
-			Directory directory = FSDirectory.open(FileSystems.getDefault().getPath("indexDir"));
-	        IndexWriterConfig indexWriterConfig = new IndexWriterConfig();
-			IndexWriter writer = new IndexWriter(directory, indexWriterConfig);
-			this.saveHelper(this.root, "", writer);
-			writer.close();
-		} catch (IOException e) {
+			iosrv.enque(new Tuple<String,
+					LinkedList<Tuple<String, Integer>>>("END", null));
+		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 	}
 	
-	private void saveHelper(trieNode node, String str, IndexWriter writer) {
+	private void saveHelper(trieNode node, String str, IOService iosrv) {
 		if(node.numOfChidren() == 0) { //Leaf node
-			Document vocab = new Document();
-			vocab.add(new StringField("vocab", str, Store.NO));
 			try {
-				writer.updateDocument(new Term("vocab", str), vocab);
-			} catch (IOException e) {
+				iosrv.enque(new Tuple<String, LinkedList<Tuple<String,
+						Integer>>>(str, node.getDocs()));
+			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 			return;
@@ -133,15 +123,14 @@ public class MatrixTrie {
 		while(it.hasNext()) {
 			Map.Entry<Character, trieNode> entry = it.next();
 			this.saveHelper(entry.getValue(), str +
-					String.valueOf(entry.getKey().charValue()), writer);
+					String.valueOf(entry.getKey().charValue()), iosrv);
 		}
 		
 		if(node.getDocs() != null) {
-			Document vocab = new Document();
-			vocab.add(new StringField("vocab", str, Store.NO));
 			try {
-				writer.updateDocument(new Term("vocab", str), vocab);
-			} catch (IOException e) {
+				iosrv.enque(new Tuple<String, LinkedList<Tuple<String,
+						Integer>>>(str, node.getDocs()));
+			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 			node.getDocs().clear();

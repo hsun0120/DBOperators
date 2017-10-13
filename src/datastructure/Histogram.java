@@ -1,8 +1,5 @@
 package datastructure;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map.Entry;
@@ -24,9 +21,8 @@ public class Histogram {
 		this.docId = docId;
 	}
 	
-	public void construct(String filename) {
-		try(Scanner sc = new Scanner(new FileInputStream(filename),
-				StandardCharsets.UTF_8.toString())) {
+	public void construct(String record) {
+		try(Scanner sc = new Scanner(record)) {
 			this.docId = sc.next(); //TODO: change this if input format changes
 			while(sc.hasNext()) {
 				String term = sc.next();
@@ -36,8 +32,6 @@ public class Histogram {
 					this.size++;
 				}
 			}
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
 		}
 	}
 	
@@ -49,14 +43,14 @@ public class Histogram {
 		return this.docId;
 	}
 	
-	public LinkedList<Tuple> getTerms() {
-		LinkedList<Tuple> list = new LinkedList<>();
+	public LinkedList<Tuple<String, Integer>> getTerms() {
+		LinkedList<Tuple<String, Integer>> list = new LinkedList<>();
 		Iterator<Entry<String, trieNode>> it = this.map.entrySet().iterator();
 		while(it.hasNext()) {
 			Entry<String, trieNode> entry = it.next();
-			Tuple group = new Tuple(entry.getKey(),
+			Tuple<String, Integer> tuple = new Tuple<>(entry.getKey(),
 					entry.getValue().getFreq());
-			list.add(group);
+			list.add(tuple);
 		}
 		return list;
 	}
