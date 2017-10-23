@@ -1,9 +1,14 @@
 package operator;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -19,10 +24,12 @@ import datastructure.MatrixTrie;
 public class tdm {
 	private MatrixTrie matrix;
 	private int numOfDoc;
+	private boolean io;
 	
 	public tdm(int numThreads, String tempDir) {
 		this.matrix = new MatrixTrie(numThreads, tempDir);
 		this.numOfDoc = 0;
+		this.io = false;
 	}
 	
 	public void add(Histogram hist) {
@@ -31,8 +38,10 @@ public class tdm {
 		while(it.hasNext()) {
 			Tuple<String, Integer> tuple = it.next();
 			if((double)Runtime.getRuntime().freeMemory()/
-					Runtime.getRuntime().totalMemory() < 0.1)
+					Runtime.getRuntime().totalMemory() < 0.1) {
 				this.matrix.clear();
+				this.io = true;
+			}
 			this.matrix.insert(tuple.getFirst(), new Tuple<>(hist.getId(),
 					tuple.getSecond()));
 		}
@@ -44,6 +53,10 @@ public class tdm {
 	}
 	
 	public void end() {
+		if(!this.io) {
+			this.matrix.output(); //Output from memory
+			return;
+		}
 		this.matrix.save();
 	}
 	
@@ -62,18 +75,33 @@ public class tdm {
 	    fileList = list.toArray(fileList);
 	    long st = System.nanoTime();
 	    tdm tdm = new tdm(4, args[1]);
-	    for(String doc: fileList) {
-	    	try(Scanner sc = new Scanner(new InputStreamReader(new
-	    			FileInputStream(doc), StandardCharsets.UTF_8))) {
-	    		while(sc.hasNextLine()) {
-	    			Histogram hist = new Histogram(null);
-	    	    	hist.construct(sc.nextLine());
-	    	    	tdm.add(hist);
+	    /* Initialize writer for row sum */
+	    try(BufferedWriter writer = new BufferedWriter(new
+							OutputStreamWriter(new FileOutputStream("colSum"), 
+									StandardCharsets.UTF_8.toString()))) {
+	    	
+	    	for(String doc: fileList) {
+	    		try(Scanner sc = new Scanner(new InputStreamReader(new
+	    				FileInputStream(doc), StandardCharsets.UTF_8))) {
+	    			while(sc.hasNextLine()) {
+	    				Histogram hist = new Histogram(null);
+	    				hist.construct(sc.nextLine());
+	    				writer.write(hist.getId() + " ");
+	    				writer.write(hist.size() + "\n");
+	    				tdm.add(hist);
+	    			}
+	    		} catch (FileNotFoundException e) {
+	    			e.printStackTrace();
 	    		}
-	    	} catch (FileNotFoundException e) {
-				e.printStackTrace();
-			}
-	    }
+	    	}
+	    } catch (UnsupportedEncodingException e1) {
+			e1.printStackTrace();
+		} catch (FileNotFoundException e1) {
+			e1.printStackTrace();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+	    
 	    tdm.end();
 	    Merger merger = new Merger(4);
 	    merger.merge("temp", args[2]);

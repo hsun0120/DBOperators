@@ -1,5 +1,12 @@
 package datastructure;
 
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
@@ -124,6 +131,17 @@ public class MatrixTrie {
 		}
 	}
 	
+	public void output() {
+		try(BufferedWriter writer = new BufferedWriter(new
+				OutputStreamWriter(new FileOutputStream("matrix"), 
+						StandardCharsets.UTF_8.toString()))) {
+			this.traverseHelper(this.root, "", writer);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
 	private void saveHelper(trieNode node, String str, IOMergeService iosrv) {
 		if(node.numOfChidren() == 0) { //Leaf node
 			try {
@@ -147,6 +165,37 @@ public class MatrixTrie {
 				iosrv.enque(new Tuple<String, LinkedList<Tuple<String,
 						Integer>>>(str, node.getDocs()));
 			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	private void traverseHelper(trieNode node, String str, BufferedWriter
+			writer) {
+		if(node.numOfChidren() == 0) { //Leaf node
+			try {
+				writer.write(str + " ");
+				writer.write(node.getDocs().toString() + " ");
+				writer.write(node.getDocs().size() + "\n");
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			return;
+		}
+		Iterator<Map.Entry<Character, trieNode>> it =
+				node.getChildren().entrySet().iterator();
+		while(it.hasNext()) {
+			Map.Entry<Character, trieNode> entry = it.next();
+			this.traverseHelper(entry.getValue(), str +
+					String.valueOf(entry.getKey().charValue()), writer);
+		}
+		
+		if(node.getDocs() != null) {
+			try {
+				writer.write(str + " ");
+				writer.write(node.getDocs().toString() + " ");
+				writer.write(node.getDocs().size() + "\n");
+			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
